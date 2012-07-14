@@ -1,0 +1,35 @@
+h1. CliMod.js - CommonJS modules for browser (no compilation needed)
+
+This is a simple JavaScript library that brings support of CommongJS modules to browser. You can simply @require()@ modules and they will be synchronously loaded, interpreted and exported.
+
+h2. How does it work?
+
+My library uses a synchronous XMLHttpRequest with interpretation by @eval()@ statement. This could by little bit slower, but I think modern browsers are fast enough. In a next version there will be also a compiler that will store modules to JavaScript object, so they won't have to be loaded from file.
+
+h2. Example
+
+my-module.js
+
+bc. module.exports = function(x, y){
+  this.x = x;
+  this.y = y;
+};
+module.exports.prototype.showCoords = function(){
+  alert(this.x + " : " + this.y);
+};
+
+
+main.js
+
+bc. var MyModule = require("my-module");
+var obj = new MyModule(1, 5);
+obj.showCoords(); //This will display "1 : 5"
+
+
+index.html
+
+bc. <!doctype html>
+<meta charset="utf-8">
+<title>CliMod.js example</title>
+<script src="climod.js"></script>
+<script src="main.js"></script>
