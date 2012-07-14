@@ -4,7 +4,7 @@ This is a simple JavaScript library that brings support of CommongJS modules to 
 
 h2. How does it work?
 
-My library uses a synchronous XMLHttpRequest with interpretation by @eval()@ statement. This could by little bit slower, but I think modern browsers are fast enough. In a next version there will be also a compiler that will store modules to JavaScript object, so they won't have to be loaded from file.
+My library uses a synchronous XMLHttpRequest with interpretation by @eval()@ statement. This could be a little bit slower, but I think modern browsers are fast enough. In a next version there will be also a compiler that will store modules to JavaScript object, so they won't have to be loaded from file.
 
 h2. Example
 
