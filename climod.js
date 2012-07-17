@@ -1,7 +1,7 @@
 var global = window;
 (function(load, undefined){
   var config = {
-        path: "./"
+        path: "."
       };
   global.require = function(id){
     id = require.resolve(id);
@@ -41,7 +41,7 @@ var global = window;
     if(id.indexOf("/")===-1){
       id = config.path+"/"+id;
     }
-    if(id.indexOf(".")===-1){
+    if(id.indexOf(".")<1){
       id += ".js";
     }
     return id;
