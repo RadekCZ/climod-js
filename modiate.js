@@ -85,6 +85,7 @@
   codeCache = {},
 
   // Translates an id to a file name
+  // https://nodejs.org/api/modules.html#modules_all_together
   resolve = require.resolve = function (id) {
     var rid, parts = currentPath.replace(/\/+$/, "").split("/");
     if (parts[0] === "") parts = [];

@@ -34,8 +34,7 @@ index.html
 <!doctype html>
 <meta charset="utf-8">
 <title>Modiate example</title>
-<script src="modiate.js"></script>
-<script src="main.js"></script>
+<script src="modiate.js" data-main="main"></script>
 ```
 
 ## Known issues
