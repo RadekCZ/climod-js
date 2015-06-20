@@ -37,3 +37,6 @@ index.html
 <script src="modiate.js"></script>
 <script src="main.js"></script>
 ```
+
+## Known issues
+- Chrome sometimes breaks

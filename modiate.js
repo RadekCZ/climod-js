@@ -1,19 +1,14 @@
-(function (global, execute, undefined) {
+(function (global, execute, init, undefined) {
   // Main require system
   var
   owns = Object.prototype.hasOwnProperty,
-
   currentPath = "",
 
   // Main function
-  require = global.require = function (id) {
-    var
-    rid = realId(id),
-    file = resolve(id);
-
-    if (owns.call(cache, rid)) {
-      return cache[rid];
-    }
+  require = function (id, isMain) {
+    var rid = resolve(id);
+    if (rid === null) throw "Module " + id + " does not exists.";
+    if (owns.call(cache, rid)) return cache[rid];
 
     var
     exports = {},
@@ -21,25 +16,30 @@
       id: rid,
       exports: exports,
 
-      _code: readFile(file, "?" + (+(new Date())))
+      _code: readFile(rid)
     },
     res,
     lastPath = currentPath;
 
-    currentPath = rid.slice(0, rid.lastIndexOf("/") + 1);
+    if (!require.main) require.main = module;
 
-    res = cache[rid] = execute(global, module, exports, require, undefined);
-
-    currentPath = lastPath;
+    if (/\.json$/.test(rid)) {
+      res = cache[rid] = module.exports = JSON.parse(module._code);
+    }
+    else {
+      currentPath = rid.slice(0, rid.lastIndexOf("/") + 1);
+      res = cache[rid] = execute(global, module, exports, require, undefined);
+      currentPath = lastPath;
+    }
 
     return res;
   },
 
   // Configuration
-  // TODO: more extensions (specific parsers)
+  // Todo: more extensions (specific parsers)
   config = require.config = {
-    path: "./",
-    extension: ".js"
+    root: "./",
+    cache: true
   },
 
   // Map for caching modules (to not load them again)
@@ -71,43 +71,111 @@
   },
 
   // Returns a content of a text file
-  // If the file doesn't exist it returns an alert
-  readFile = function (file, q) {
-    if (q === undefined) { q = ""; }
+  readFile = function (file) {
+    if (owns.call(codeCache, file)) return codeCache[file];
 
-    var xhr = getRequest(file + q, false);
+    var
+    q = config.cache ? "" : "?" + (+(new Date())),
+    xhr = getRequest(config.root + file + q, false);
+
     xhr.send();
 
-    return xhr.status === 200 ? xhr.responseText : 'alert("Error: file ' + file + ' not found!");';
+    return (xhr.status === 200 && xhr.responseText[0] !== "<") ? xhr.responseText : null;
   },
-
-  realId = function (id) {
-    if (id.substr(0, 2) === "./") {
-      id = currentPath + id.substr(2);
-    }
-    else if (id.substr(0, 3) === "../") {
-      var dirs = currentPath.split("/");
-      dirs.pop();
-
-      do {
-        dirs.pop();
-        id = id.substr(3);
-      } while (id.substr(0, 3) === "../");
-
-      id = dirs.join("/") + "/" + id;
-    }
-
-    return id;
-  },
+  codeCache = {},
 
   // Translates an id to a file name
   resolve = require.resolve = function (id) {
-    return config.path + realId(id) + config.extension;
+    var rid, parts = currentPath.replace(/\/+$/, "").split("/");
+    if (parts[0] === "") parts = [];
+
+    if (/^\.{0,2}\//.test(id)) {
+      var idParts = id.split("/");
+      if (idParts[0] === "") {
+        idParts.shift();
+        parts = [];
+      }
+
+      for (var i = 0; i < idParts.length; ++i) {
+        var part = idParts[i];
+
+        if (part === ".") continue;
+        else if (part === "..") parts.pop();
+        else parts.push(part);
+      }
+
+      rid = parts.join("/");
+      return resolvePath(rid);
+    }
+
+    for (var i = parts.length; i >= 0; --i) {
+      rid = resolvePath(parts.concat(["node_modules"]).join("/") + "/" + id);
+      if (rid !== null) return rid;
+      parts.pop();
+    }
+
+    return null;
+  },
+
+  resolveExt = function (rid, exts) {
+    for (var i = 0; i < exts.length; ++i) {
+      var file = rid + exts[i];
+      if (readFile(file) !== null) return file;
+    }
+
+    return null;
+  },
+
+  resolveFile = function (rid) {
+    return resolveExt(rid, ["", ".js", ".json"]);
+  },
+
+  resolveDirectory = function (rid) {
+    var package = readFile(rid + "/package.json");
+    if (package !== null) {
+      package = JSON.parse(package);
+
+      return resolveFile(rid + "/" + package.main);
+    }
+
+    return resolveExt(rid, ["/index.js", "/index.json"]);
+  },
+
+  resolvePath = function (rid) {
+    var file = resolveFile(rid);
+    if (file !== null) return file;
+
+    var dir = resolveDirectory(rid);
+    if (dir !== null) return dir;
+
+    return null;
   };
+
+  // Execute the main module
+  init(global, require);
 })(
   this,
   function (global, module, exports, require, undefined) { // This function runs a module and returns its export
     eval(module._code);
     return module.exports;
+  },
+  function (global, require, undefined) {
+    var
+    config = require.config,
+    scripts = document.getElementsByTagName("script"),
+    lastScript = scripts[scripts.length - 1],
+    x;
+
+    if (x = lastScript.getAttribute("data-root")) config.root = x;
+    if (x = lastScript.getAttribute("data-cache")) config.cache = x === "true";
+    if (x = lastScript.getAttribute("data-main")) {
+      try {
+        require("/" + x);
+      }
+      catch (err) {
+        console.error(err);
+        // What the fuck is wrong with you, Chrome?
+      }
+    }
   }
 );
